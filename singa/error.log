@@ -1,0 +1,53 @@
+step0: 开始准备数据...
+step1: 数据准备完毕...
+step3: 模型加载完毕...
+epoch:  0 batch:  0
+F0731 10:24:53.447078  3081 tensor.cc:490] Check failed: shape_.at(m - i) == 1 (512 vs. 1) i= 2
+*** Check failure stack trace: ***
+    @     0x7ffb412d9fbd  google::LogMessage::Fail()
+    @     0x7ffb412dc26e  google::LogMessage::SendToLog()
+    @     0x7ffb412d9b9c  google::LogMessage::Flush()
+    @     0x7ffb412dc7b9  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7ffb40d18bf1  singa::Tensor::Broadcast()
+    @     0x7ffb40d18c4c  singa::Broadcast()
+    @     0x7ffb40d8a338  singa::Mult()
+    @     0x7ffb40c9e11c  _wrap_Mult
+    @           0x5073b0  cfunction_call
+    @           0x4f073c  _PyObject_MakeTpCall
+    @           0x4ecc93  _PyEval_EvalFrameDefault
+    @           0x4f8123  function_code_fastcall
+    @           0x505121  method_vectorcall
+    @           0x4eb844  _PyEval_EvalFrameDefault
+    @           0x4e6b2a  _PyEval_EvalCode
+    @           0x4f7e54  _PyFunction_Vectorcall
+    @           0x505121  method_vectorcall
+    @           0x4eb844  _PyEval_EvalFrameDefault
+    @           0x50bfcc  gen_send_ex
+    @           0x4e8377  _PyEval_EvalFrameDefault
+    @           0x4f8123  function_code_fastcall
+    @           0x4e80b5  _PyEval_EvalFrameDefault
+    @           0x4f8123  function_code_fastcall
+    @           0x4eff2e  _PyObject_FastCallDictTstate
+    @           0x502d86  _PyObject_Call_Prepend
+    @           0x5cbd93  slot_tp_call
+    @           0x4f073c  _PyObject_MakeTpCall
+    @           0x4ecc93  _PyEval_EvalFrameDefault
+    @           0x4f8123  function_code_fastcall
+    @           0x4eb844  _PyEval_EvalFrameDefault
+    @           0x4e6b2a  _PyEval_EvalCode
+    @           0x4f7e54  _PyFunction_Vectorcall
+Fatal Python error: Aborted
+
+Current thread 0x00007ffb51955740 (most recent call first):
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/autograd.py", line 622 in backward
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/autograd.py", line 317 in _do_backward
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/autograd.py", line 170 in backward
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/opt.py", line 108 in call
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/opt.py", line 104 in __call__
+  File "/tmp/pycharm_project_473/trans/model.py", line 67 in train_one_batch
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/model.py", line 91 in wrapper
+  File "/root/miniconda3/lib/python3.9/site-packages/singa/model.py", line 240 in __call__
+  File "/tmp/pycharm_project_473/trans/train.py", line 154 in train
+  File "/tmp/pycharm_project_473/trans/train.py", line 162 in <module>
+/tmp/tmp382oy207: line 3:  3081 Aborted                 (core dumped) python /tmp/pycharm_project_473/trans/train.py
+ERROR conda.cli.main_run:execute(124): `conda run python /tmp/pycharm_project_473/trans/train.py` failed. (See above for error)
