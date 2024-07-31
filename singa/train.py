@@ -8,7 +8,7 @@ from model import Transformer
 print("step0: 开始准备数据...")
 # 数据集生成
 soundmark = ['ei', 'bi:', 'si:', 'di:', 'i:', 'ef', 'dʒi:', 'eit∫', 'ai', 'dʒei', 'kei', 'el', 'em', 'en', 'əu', 'pi:',
-             'kju:', 'ɑ:', 'es', 'ti:', 'ju:', 'vi:', 'd∧blju:', 'eks', 'wai', 'zi:']
+             'kju:', 'ɑ:', 'es', 'ti:', 'ju:', 'vi:', 'd^blju:', 'eks', 'wai', 'zi:']
 
 alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
             'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
