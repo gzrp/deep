@@ -28,7 +28,8 @@ class Transformer(model.Model):
         # encoder  /  decoder / linear
         self.encoder = TransformerEncoder(src_n_token=src_n_token, d_model=d_model, n_head=n_head, dim_feedforward=dim_feedforward, n_layers=n_layers)
         self.decoder = TransformerDecoder(tgt_n_token=tgt_n_token, d_model=d_model, n_head=n_head, dim_feedforward=dim_feedforward, n_layers=n_layers)
-        self.linear = Linear3D(in_features=d_model, out_features=tgt_n_token, bias=False)
+
+        self.linear3d = Linear3D(in_features=d_model, out_features=tgt_n_token, bias=False)
 
         self.softmax_cross_entropy = layer.SoftMaxCrossEntropy()
 
@@ -50,7 +51,7 @@ class Transformer(model.Model):
         # dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
         dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
 
-        dec_logits = self.linear(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
+        dec_logits = self.linear3d(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
         shape = dec_logits.shape[-1]
         dec_logits = autograd.reshape(dec_logits, [-1, shape])
         return dec_logits, enc_self_attns, dec_self_attns, dec_enc_attns
@@ -307,6 +308,22 @@ class TransformerEncoderLayer(layer.Layer):
         enc_outputs = self.pos_ffn(enc_outputs)
         return enc_outputs, attn
 
+def matmul4d(x1, x2):
+   batchs, heads = x1.shape[0], x1.shape[1]
+   ys = []
+   for b in range(batchs):
+      x1b, x2b = autograd.squeeze(x1[b]), autograd.squeeze(x2[b])
+      yb = []
+      for h in range(heads):
+         x1h, x2h = autograd.squeeze(x1b[h]), autograd.squeeze(x2b[h])
+         yh = autograd.matmul(x1h, x2h)
+         yh = autograd.unsqueeze(yh, axis=[0])
+         yb.append(yh)
+      yb = autograd.cat(yb, axis=0)
+      yb = autograd.unsqueeze(yb, axis=[0])
+      ys.append(yb)
+   y = autograd.cat(ys, axis=0)
+   return y
 
 class MultiHeadAttention(layer.Layer):
     def __init__(self, d_model=512, n_head=8):
@@ -400,7 +417,11 @@ class ScaledDotProductAttention(layer.Layer):
         # Where 算子
         K_trans = autograd.transpose(key, [0, 1, 3, 2])
         # scores : [batch_size, n_heads, len_q, len_k]
-        scores = autograd.matmul(query, K_trans)
+
+        # query [batch_size, h_heads, len_q, d_k]
+        # k^T   [batch_size, n_heads, d_k, len_k]
+
+        scores = matmul4d(query, K_trans)
         d_k_sqrt = Tensor(shape=(1,), requires_grad=False, stores_grad=False)
         d_k_sqrt.set_value(np.sqrt(self.d_k))
         scores = autograd.div(scores, d_k_sqrt)
@@ -411,7 +432,9 @@ class ScaledDotProductAttention(layer.Layer):
         scores = autograd.where(mask_fill, scores, attn_mask_np)
 
         attn = autograd.softmax(scores, axis=-1)
-        context = autograd.matmul(attn, value)  # [batch_size, n_heads, len_q, d_v]
+        # context: [batch_size, n_heads, len_q, d_v]
+        # attn: [batch_size, n_heads, len_q, len_k]  V: [batch_size, n_heads, len_v(=len_k), d_v]
+        context = matmul4d(attn, value)
         return context, attn
 
 class PoswiseFeedForwardNet(layer.Layer):
@@ -475,27 +498,25 @@ class LayerNorm(layer.Layer):
 
 class Linear3D(layer.Layer):
     """
-    Generate a Linear operator
+    Generate a Linear3D operator
     """
 
     # TODO: replace current with
-    #   def __init__(self, out_features):
-    def __init__(self, out_features, *args, bias=False,**kwargs):
+    #   def __init__(self, out_features, bias=True):
+    def __init__(self, out_features, *args, bias=False, **kwargs):
         """
         Args:
-            out_channels: int, the channel of output, also is the number of
+            ut_channels: int, the channel of output, also is the number of
                 filters
             bias: bool
         """
         super(Linear3D, self).__init__()
-
         self.out_features = out_features
 
         # TODO: for backward compatibility, to remove
         if len(args) > 0:
             self.in_features = out_features
             self.out_features = args[0]
-
         if len(args) > 1:
             self.bias = args[1]
         else:
@@ -534,9 +555,16 @@ class Linear3D(layer.Layer):
             "Linear3D layer expects input features size %d received %d" %
             (self.W.shape[0], x.shape[-1]))
 
-        y = autograd.matmul(x, self.W)
-        if self.bias:
-            y = autograd.add_bias(y, self.b, axis=0)
+        ys = []
+        batch = x.shape[0]
+        for i in range(batch):
+            xi = autograd.squeeze(x[i])
+            yi = autograd.matmul(xi, self.W)
+            if self.bias:
+                yi = autograd.add_bias(yi, self.b, axis=0)
+            yi = autograd.unsqueeze(yi, axis=[0])
+            ys.append(yi)
+        y = autograd.cat(ys, axis=0)
         return y
 
 
@@ -551,3 +579,4 @@ class Linear3D(layer.Layer):
         self.W.copy_from(parameters[self.W.name])
         if self.bias:
             self.b.copy_from(parameters[self.b.name])
+            
