@@ -4,17 +4,18 @@ from singa import device
 from singa import tensor
 from singa import opt
 from model import Transformer
+import matplotlib.pyplot as plt
 
 print("step0: 开始准备数据...")
 # 数据集生成
 soundmark = ['ei', 'bi:', 'si:', 'di:', 'i:', 'ef', 'dʒi:', 'eit∫', 'ai', 'dʒei', 'kei', 'el', 'em', 'en', 'əu', 'pi:',
-             'kju:', 'ɑ:', 'es', 'ti:', 'ju:', 'vi:', 'd^blju:', 'eks', 'wai', 'zi:']
+             'kju:', 'ɑ:', 'es', 'ti:', 'ju:', 'vi:', 'd∧blju:', 'eks', 'wai', 'zi:']
 
 alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
             'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
 
-t = 100 #总条数
+t = 1000 #总条数
 r = 0.9   #扰动项
 seq_len = 6
 src_tokens, tgt_tokens = [],[] #原始序列、目标序列列表
@@ -73,11 +74,11 @@ decoder_input_np = np.asarray([tgt_vocab[['<bos>']+line] for line in tgt_tokens]
 decoder_output_np = np.asarray([tgt_vocab[line+['<eos>']] for line in tgt_tokens], dtype=np.int32)
 
 # 记录损失变化
-loss_history = []
+
 # 训练 10 轮
-num_epochs = 10
+num_epochs = 15
 # 每次小批量 16
-batch_size = 4
+batch_size = 32
 # 训练数据集合测试数据集 8:2
 train_size = int(len(encoder_input_np) * 0.8)
 test_size = len(encoder_input_np) - train_size
@@ -104,7 +105,7 @@ num_train_batch = train_encoder_input.shape[0] // batch_size
 num_test_batch = test_encoder_input.shape[0] // batch_size
 idx = np.arange(train_encoder_input.shape[0], dtype=np.int32)
 
-
+loss_history = []
 def train():
     # 配置设备
     dev = device.create_cpu_device()
@@ -123,24 +124,26 @@ def train():
     # 优化器
     optimizer = opt.SGD(lr=0.001, momentum=0.9, weight_decay=1e-5)
     model.set_optimizer(optimizer)
-    print("step3: 模型加载完毕...")
-    # model.compile([tx_enc_inputs, tx_dec_inputs], is_train=True)
+    print("step2: 模型加载完毕...")
 
-    tx_enc_inputs = tensor.Tensor((batch_size, src_len), dev, tensor.int32)
-    tx_dec_inputs = tensor.Tensor((batch_size, tgt_len), dev, tensor.int32)
-    ty_dec_outputs = tensor.Tensor((batch_size, tgt_len), dev, tensor.int32)
+
+    tx_enc_inputs = tensor.Tensor((batch_size, src_len), dev, tensor.int32, np.zeros((batch_size, src_len), dtype=np.int32))
+    tx_dec_inputs = tensor.Tensor((batch_size, tgt_len), dev, tensor.int32, np.zeros((batch_size, src_len), dtype=np.int32))
+    ty_dec_outputs = tensor.Tensor((batch_size, tgt_len), dev, tensor.int32, np.zeros((batch_size, src_len), dtype=np.int32))
+
+    # model.compile([tx_enc_inputs, tx_dec_inputs], is_train=True)
     # 训练与验证循环
+
     for epoch in range(num_epochs):
         # 训练正确率，测试正确率，训练损失
         train_correct = np.zeros(shape=[1], dtype=np.float32)
         test_correct = np.zeros(shape=[1], dtype=np.float32)
         train_loss = np.zeros(shape=[1], dtype=np.float32)
-
+        total_loss = 0
         # 训练模式
         model.train()
         model.graph(mode=False, sequential=False)
         for b in range(num_train_batch):
-            print("epoch: ", epoch, "batch: ", b)
             # 获取一批数据
             x_enc_inputs = train_encoder_input[idx[b*batch_size:(b+1)*batch_size]]
             x_dec_inputs = train_decoder_input[idx[b*batch_size:(b+1)*batch_size]]
@@ -154,9 +157,20 @@ def train():
             out, loss = model(tx_enc_inputs, tx_dec_inputs, ty_dec_outputs)
 
             # 计算训练模式下的正确数量和损失
+            loss_np = tensor.to_numpy(loss)
 
-            train_loss += tensor.to_numpy(loss)[0]
+            batch_loss = loss_np[0]
+            total_loss += batch_loss
+            print("epoch: ", epoch+1, "batch: ", b+1, "total loss: ", '{:.6f}'.format(batch_loss))
+        avg_loss = total_loss / num_train_batch
+        loss_history.append(avg_loss)
+        print("#####epoch: ", epoch+1, "avg loss: ", '{:.6f}'.format(avg_loss), "     #####")
+    model.save_states('model.pt')
 
 
 if __name__ == '__main__':
     train()
+    plt.plot(loss_history)
+    plt.ylabel('train loss')
+    plt.show()
+    plt.savefig('output.png')
