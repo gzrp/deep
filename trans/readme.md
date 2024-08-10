@@ -1,9 +1,8 @@
 
-# Machine translation models using Transformer Example
-This example trains a Transformer on a machine translation task. By default, the training script uses the anki dataset, 
-provided. You can download from http://www.manythings.org/anki/. This example uses the Chinese and English sentence pairs
-provided by this dataset to complete the translation task. The dataset contains 29909 sentence pairs in both English and
-Chinese.
+# Machine translation model using Transformer Example
+This example trains a Transformer model on a machine translation task. By default, the training script uses the anki dataset, provided.
+You can download from http://www.manythings.org/anki/. This example uses the Chinese and English sentence pairs provided by this dataset
+to complete the translation task. The dataset contains 29909 sentence pairs in both English and Chinese.
 
 Data format: English + TAB + Chinese + TAB + Attribution.
 Example:
@@ -30,5 +29,5 @@ optional arguments:
 
 run the example
 ```
-python train.py --dataset cmn-2000.txt --max-epoch 100 --batch-size 32 --lr 0.005
+python train.py --dataset cmn.txt --max-epoch 100 --batch-size 32 --lr 0.01
 ```
