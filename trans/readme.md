@@ -5,6 +5,7 @@ You can download from http://www.manythings.org/anki/. This example uses the Chi
 to complete the translation task. The dataset contains 29909 sentence pairs in both English and Chinese.
 
 Data format: English + TAB + Chinese + TAB + Attribution.
+
 Example:
 ```
 Hi.	嗨。	CC-BY 2.0 (France) Attribution: tatoeba.org #538123 (CM) & #891077 (Martha)
